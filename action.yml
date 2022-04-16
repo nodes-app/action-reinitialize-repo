@@ -1,15 +1,58 @@
-name: Hello
-description: Say hello
+name: Reinitialize Repository
+description: Reinitializes a GitHub repository
 branding:
-  icon: activity
+  icon: plus
   color: blue
 inputs:
-  foo:
-    description: Foo
+  repository:
+    description: Repository (e.g. nodes-app/example)
     required: true
+  location: 
+    description: Relative path to local repository
+    required: true
+    default: '.'
+  token:
+    description: Personal Access Token
+    required: true
+  
 runs:
   using: composite
   steps:
     - shell: bash
+      id: user-info
+      env: 
+        GITHUB_TOKEN: ${{ inputs.token }}
       run: |
-        echo 'Hello, World!'
+        user_info=$(gh api /user)
+        username=$(echo $user_info | jq -r '.login')
+        id=$(echo $user_info | jq -r '.id')
+        public_email=$(echo $user_info | jq -r '.email')
+
+        if [ "$public_email" = 'null' ]; then
+          email="$id+$username@users.noreply.github.com"
+        fi
+          email="$public_email"
+        else
+
+        echo "::set-output name=username::$username"
+        echo "::set-output name=email::$email"
+
+    - shell: bash
+      env:
+        REPOSITORY: ${{ inputs.repository }}
+        LOCATION: ${{ inputs.location }}
+        USERNAME: ${{ steps.user-info.outputs.username }}
+        EMAIL: ${{ steps.user-info.outputs.email }}
+        GITHUB_TOKEN: ${{ inputs.token }}
+      run: |
+        previous_dir="$(pwd)"
+        cd $LOCATION
+
+        git config user.email "$EMAIL"
+        git config user.name "$USERNAME"
+        git checkout --orphan temp-branch
+        git add .
+        git commit -m 'Initial commit'
+        git push "https://$GITHUB_TOKEN@github.com/$REPOSITORY.git" temp-branch:master -f
+
+        cd "$previous_dir"
