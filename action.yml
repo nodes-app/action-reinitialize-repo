@@ -53,6 +53,6 @@ runs:
         git checkout --orphan temp-branch
         git add .
         git commit -m 'Initial commit'
-        git push "https://$GITHUB_TOKEN@github.com/$REPOSITORY.git" temp-branch:master -f
+        git push "https://$GITHUB_TOKEN@github.com/$REPOSITORY.git" temp-branch:main -f
 
         cd "$previous_dir"
