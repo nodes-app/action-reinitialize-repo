@@ -30,9 +30,9 @@ runs:
 
         if [ "$public_email" = 'null' ]; then
           email="$id+$username@users.noreply.github.com"
-        fi
-          email="$public_email"
         else
+          email="$public_email"
+        fi
 
         echo "::set-output name=username::$username"
         echo "::set-output name=email::$email"
