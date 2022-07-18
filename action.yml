@@ -14,45 +14,49 @@ inputs:
   token:
     description: Personal Access Token
     required: true
+  clear-workflow-runs:
+    description: Clear all previous workflow runs
+    required: false
+    default: 'true'
   
 runs:
   using: composite
   steps:
-    - shell: bash
-      id: user-info
-      env: 
+
+    - name: Clear Workflow Runs
+      if: inputs.clear-workflow-runs == 'true'
+      shell: bash
+      uses: nodes-app/action-clear-workflow-history@v1
+      with:
+        repository: ${{ inputs.repository }}
+        token: ${{ inputs.token }}
+
+    - name: Reinitialize
+      shell: bash
+      env:
+        REPOSITORY: ${{ inputs.repository }}
+        LOCATION: ${{ inputs.location }}
         GITHUB_TOKEN: ${{ inputs.token }}
       run: |
         user_info=$(gh api /user)
         username=$(echo $user_info | jq -r '.login')
         id=$(echo $user_info | jq -r '.id')
         public_email=$(echo $user_info | jq -r '.email')
-
+        
         if [ "$public_email" = 'null' ]; then
           email="$id+$username@users.noreply.github.com"
         else
           email="$public_email"
         fi
-
-        echo "::set-output name=username::$username"
-        echo "::set-output name=email::$email"
-
-    - shell: bash
-      env:
-        REPOSITORY: ${{ inputs.repository }}
-        LOCATION: ${{ inputs.location }}
-        USERNAME: ${{ steps.user-info.outputs.username }}
-        EMAIL: ${{ steps.user-info.outputs.email }}
-        GITHUB_TOKEN: ${{ inputs.token }}
-      run: |
+        
         previous_dir="$(pwd)"
         cd $LOCATION
 
-        git config user.email "$EMAIL"
-        git config user.name "$USERNAME"
+        git config user.email "$email"
+        git config user.name "$username"
         git checkout --orphan temp-branch
         git add .
         git commit -m 'Initial commit'
         git push "https://$GITHUB_TOKEN@github.com/$REPOSITORY.git" temp-branch:main -f
 
-        cd "$previous_dir"
+        cd -
