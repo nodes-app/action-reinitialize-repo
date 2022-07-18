@@ -25,7 +25,6 @@ runs:
 
     - name: Clear Workflow Runs
       if: inputs.clear-workflow-runs == 'true'
-      shell: bash
       uses: nodes-app/action-clear-workflow-history@v1
       with:
         repository: ${{ inputs.repository }}
